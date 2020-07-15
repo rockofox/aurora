@@ -4,7 +4,6 @@ build:
   stage: build
   before_script:
      - apt update
-     - apt install -y grub-pc
      - apt install -y libgmp3-dev
      - apt install -y libmpfr-dev
      - apt install -y libmpc-dev
