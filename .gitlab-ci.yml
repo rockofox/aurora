@@ -18,8 +18,7 @@ build:
   artifacts:
     paths:
       - aurora.bin
-
-    cache:
-        paths:
-            - "~/cross"
+  cache:
+    paths:
+      - "~/cross"
 
