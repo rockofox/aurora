@@ -11,7 +11,7 @@ LDFLAGS = -T linker.ld -ffreestanding -O2 -nostdlib -lgcc
 aurora.bin: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^
 run: aurora.bin
-	qemu-system-i386 -kernel aurora.bin -vga std -display sdl -monitor stdio -d cpu_reset
+	qemu-system-i386 -kernel aurora.bin -vga std -display sdl -serial stdio
 %.o: %.c
 	$(CC) $(CFLAGS) -c $^ -o $@ 
 

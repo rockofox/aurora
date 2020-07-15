@@ -8,6 +8,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "keyboard.h"
+#include "serial.h"
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
 #if defined(__linux__)
@@ -113,6 +114,8 @@ void kernel_main(void)
 
 	/* Initialize terminal interface */
 	terminal_initialize();
+	init_serial();
+	serial_println("Serial initialized");
 
 	// terminal_writestring("test");
 	// outb(0x43,0x36);
