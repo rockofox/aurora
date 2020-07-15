@@ -9,7 +9,6 @@ build:
      - apt install -y libmpc-dev
      - apt install -y texinfo
      - apt install -y libisl-dev
-     - apt install -y libcloog-isl-dev
      - bash ci/toolchain.sh i686-pc-elf
 
   script:
