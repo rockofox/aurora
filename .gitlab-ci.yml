@@ -1,0 +1,25 @@
+image: gcc
+
+build:
+  stage: build
+  before_script:
+     - apt update
+     - apt install grub-pc
+     - apt install libgmp3-dev
+     - apt install libmpfr-dev
+     - apt install libmpc-dev
+     - apt install texinfo
+     - apt install libisl-dev
+     - apt install libcloog-isl-dev
+     - bash ci/toolchain.sh i686-pc-elf
+
+  script:
+    - make
+  artifacts:
+    paths:
+      - aurora.bin
+
+    cache:
+        paths:
+            - "~/cross"
+
