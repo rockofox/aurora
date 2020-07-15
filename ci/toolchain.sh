@@ -46,11 +46,11 @@ then
  
 	# Build binutils.
 	cd /tmp/toolchain/build-binutils
-	sudo rm -rf *
+	rm -rf *
 	/tmp/toolchain/binutils-$binutils_version/configure --target=$target --prefix=$prefix --disable-nls 2>&1
 	make all 2>&1
 	make install 2>&1
-	sudo rm -rf *
+	rm -rf *
  
 	# Build gcc and libgcc.
 	cd /tmp/toolchain/build-gcc
@@ -62,23 +62,23 @@ then
  
 	# Make sure that our cross compiler will be found by creating links.
 	# Alternative: Add the $prefix/bin directory to your $PATH.
-	sudo ln -s -f $prefix/bin/* /usr/local/bin/
+	ln -s -f $prefix/bin/* /usr/local/bin/
  
 	# Optional: Build newlib. This is necessary only for the next, also optional build step.
 	cd /tmp/toolchain/build-newlib
-	sudo rm -rf *
+	rm -rf *
 	/tmp/toolchain/newlib-$newlib_version/configure --target=$target --prefix=$prefix 2>&1
 	make all 2>&1
 	make install 2>&1
-	sudo rm -rf *
+	rm -rf *
  
 	# Optional: Build libstdc++. This is done in order to install the freestanding headers for using the C++11, C++14, C++17 standards.
 	cd /tmp/toolchain/build-gcc
 	/tmp/toolchain/gcc-$gcc_version/configure --target=$target --prefix=$prefix --disable-nls --enable-languages=c,c++ --enable-libstdcxx --without-headers --with-newlib 2>&1
 	make all-target-libstdc++-v3 2>&1
 	make install-target-libstdc++-v3 2>&1
-	sudo rm -rf *
+	rm -rf *
 fi
  
 # Also if the cross compiler has not been freshly build, link it so that it will be found.
-sudo ln -s -f $prefix/bin/* /usr/local/bin/
+ln -s -f $prefix/bin/* /usr/local/bin/
