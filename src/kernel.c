@@ -9,6 +9,7 @@
 #include "stdio.h"
 #include "keyboard.h"
 #include "serial.h"
+#include "unistd.h"
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
 #if defined(__linux__)
@@ -23,16 +24,6 @@
 
 
 
-
-void sleep(unsigned int millis) {
-	int ticksElapsed = 0;
-	while(ticksElapsed/57 < millis) {
-		if (inb(0x40) == 0)
-		{
-			ticksElapsed++;
-		}
-	}
-}
 
 extern void shutdown();
 void flushBuffer() {
@@ -108,8 +99,6 @@ void init_gdt(void)
 }
 void kernel_main(void)
 {
-	
-	
 	init_gdt();
 
 	/* Initialize terminal interface */
@@ -128,7 +117,11 @@ void kernel_main(void)
 	
 	kprintln("AuroraOS wip");
 	kprint(PROMPT);
-	while(1) {
 
+	// scrollback_write("Hello scrollback");
+	// terminal_scrollback();
+	
+	while(1) {
+		// kprintln("AuroraOS wip");
 	}
 }

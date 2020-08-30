@@ -6,8 +6,7 @@ char *strcat(char *dest, const char *src)
 	char *ret = dest;
 	while (*dest)
 		dest++;
-	while (*dest++ = *src++)
-		;
+	while (*dest++ = *src++);
 	return ret;
 }
 int strcmp(char string1[], char string2[])
