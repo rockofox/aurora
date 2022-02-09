@@ -6,7 +6,8 @@ char *strcat(char *dest, const char *src)
 	char *ret = dest;
 	while (*dest)
 		dest++;
-	while (*dest++ = *src++);
+	while (*dest++ = *src++)
+		;
 	return ret;
 }
 int strcmp(char string1[], char string2[])
@@ -32,7 +33,6 @@ void strcpy(char dest[], const char source[])
 		i++;
 	}
 }
-
 
 /**
 	 * C++ version 0.4 char* style "itoa":
@@ -72,10 +72,46 @@ char *itoa(int value, char *result, int base)
 	return result;
 }
 
-size_t strlen(const char* str)
+size_t strlen(const char *str)
 {
 	size_t len = 0;
 	while (str[len])
 		len++;
 	return len;
+}
+int strtol(const char *str, char **endptr, int base)
+{
+	int ret = 0;
+	int sign = 1;
+	if (*str == '-')
+	{
+		sign = -1;
+		str++;
+	}
+	while (*str)
+	{
+		if (*str >= '0' && *str <= '9')
+		{
+			ret *= base;
+			ret += *str - '0';
+		}
+		else if (*str >= 'a' && *str <= 'z')
+		{
+			ret *= base;
+			ret += *str - 'a' + 10;
+		}
+		else if (*str >= 'A' && *str <= 'Z')
+		{
+			ret *= base;
+			ret += *str - 'A' + 10;
+		}
+		else
+		{
+			break;
+		}
+		str++;
+	}
+	if (endptr)
+		*endptr = (char *)str;
+	return sign * ret;
 }

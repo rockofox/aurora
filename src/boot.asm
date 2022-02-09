@@ -1,7 +1,8 @@
 ; Declare constants for the multiboot header.
 MBALIGN  equ  1 << 0            ; align loaded modules on page boundaries
 MEMINFO  equ  1 << 1            ; provide memory map
-FLAGS    equ  MBALIGN | MEMINFO ; this is the Multiboot 'flag' field
+VIDEO	equ  1 << 2            ; provide a video mode
+FLAGS    equ  MBALIGN | MEMINFO | VIDEO ; this is the Multiboot 'flag' field
 MAGIC    equ  0x1BADB002        ; 'magic number' lets bootloader find the header
 CHECKSUM equ -(MAGIC + FLAGS)   ; checksum of above, to prove we are multiboot
 
@@ -15,6 +16,14 @@ align 4
 	dd MAGIC
 	dd FLAGS
 	dd CHECKSUM
+	; aout kludge (unused)
+    dd 0,0,0,0,0
+
+	; Video mode
+    dd   0      ; Linear graphics please?
+    dd   800       ; Preferred width
+    dd   600      ; Preferred height
+    dd   32     ; Preferred pixel depth
 
 ; The multiboot standard does not define the value of the stack pointer register
 ; (esp) and it is up to the kernel to provide a stack. This allocates room for a
@@ -73,6 +82,8 @@ _start:
 	; stack since (pushed 0 bytes so far) and the alignment is thus
 	; preserved and the call is well defined.
         ; note, that if you are building on Windows, C functions may have "_" prefix in assembly: _kernel_main
+	push ebx
+	push eax
 	extern kernel_main
 	call kernel_main
 
