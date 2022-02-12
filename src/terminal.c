@@ -77,6 +77,7 @@ void terminal_rawentryat(uint16_t ent, size_t x, size_t y)
     }
     else
     {
+
         framebuffer_draw_rect(framebuffer, x * 8, y * 8, 8, 8, 0);
     }
 

@@ -35,12 +35,46 @@ extern irq12_handler
 extern irq13_handler
 extern irq14_handler
 extern irq15_handler
+
 section .text
+%macro push_cpu_state 0
+    push ebp
+    push edi
+    push esi
+    push edx
+    push ecx
+    push ebx
+    push eax
+%endmacro
+
+%macro pop_cpu_state 0
+    pop eax
+    pop ebx
+    pop ecx
+    pop edx
+    pop esi
+    pop edi
+    pop ebp
+%endmacro
 irq0:
-    pusha
+    push 0
+    push 0
+    push_cpu_state
+    ; Load kernel data segment
+    mov ax, 0x10
+    mov ds,ax
+    mov es,ax
+    push esp
     call irq0_handler
-    popa
+    mov esp, eax
+    ; Load user data segment
+    mov ax, 0x23
+    mov ds,ax
+    mov es,ax
+    pop_cpu_state
+    add esp, 8
     iret
+
  
 irq1:
     pusha

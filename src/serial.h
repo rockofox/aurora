@@ -3,5 +3,6 @@
 
 void init_serial();
 void write_serial(char a);
-void serial_println(char* str);
-void serial_print(char* str);
+void serial_println(char *str);
+void serial_print(char *str);
+void serial_printf(char *str, ...);

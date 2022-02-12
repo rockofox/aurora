@@ -23,12 +23,15 @@ void framebuffer_set_pixel(framebuffer_t *fb, uint32_t x, uint32_t y, uint32_t c
 }
 void framebuffer_draw_rect(framebuffer_t *fb, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color)
 {
-    for (uint32_t i = 0; i < width; i++)
+    uint32_t *pixel = fb->addr + fb->pitch * y + (fb->bpp / 8) * x;
+    for (uint32_t i = 0; i < height; i++)
     {
-        for (uint32_t j = 0; j < height; j++)
+        for (uint32_t j = 0; j < width; j++)
         {
-            framebuffer_set_pixel(fb, x + i, y + j, color);
+            *pixel = color;
+            pixel++;
         }
+        pixel += fb->pitch / 4 - width;
     }
 }
 uint32_t color(uint8_t red, uint8_t green, uint8_t blue)

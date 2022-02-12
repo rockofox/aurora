@@ -4,6 +4,9 @@
 #include "stdio.h"
 #include "io.h"
 #include "serial.h"
+#include "string.h"
+#include "idts.h"
+
 char layout[60] = "1234567890-=<>qwertyuiop[]?\\asdfghjkl;'!@#zxcvbnm,./";
 char buffer[200] = "";
 bool shiftKey = false;
@@ -24,7 +27,10 @@ void execute(char *cmd)
 	}
 	else if (strcmp("int", cmd) == 0)
 	{
-		asm volatile("int $0x2");
+		// char c[20];
+		// itoa(IDT[0].offset_higherbits, c, 10);
+		// serial_println(c);
+		asm volatile("int $33");
 	}
 	else if (strcmp("shutdown", cmd) == 0)
 	{

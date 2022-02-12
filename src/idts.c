@@ -2,17 +2,16 @@
 #include "idts.h"
 #include "stdio.h"
 #include "serial.h"
-
-struct IDT_entry
-{
-	unsigned short int offset_lowerbits;
-	unsigned short int selector;
-	unsigned char zero;
-	unsigned char type_attr;
-	unsigned short int offset_higherbits;
-};
+#include "cpu.h"
+#include "string.h"
+#include "gdt.h"
 
 struct IDT_entry IDT[256];
+
+#define IDT_FLAG_INTERRUPT_GATE 0xe
+#define IDT_FLAG_PRESENT 0x80
+#define IDT_FLAG_RING0 0x00
+#define IDT_FLAG_RING3 0x60
 
 void idt_init(void)
 {
@@ -64,6 +63,7 @@ void idt_init(void)
 	// outb(0xA1, 0x01);
 	// outb(0x21, 0x0);
 	// outb(0xA1, 0x0);
+
 	// Master-PIC initialisieren
 	outb(0x20, 0x11); // Initialisierungsbefehl fuer den PIC
 	outb(0x21, 0x20); // Interruptnummer fuer IRQ 0
@@ -77,21 +77,21 @@ void idt_init(void)
 	outb(0xa1, 0x01); // ICW 4
 
 	// Alle IRQs aktivieren (demaskieren)
-	outb(0x21, 0x0);
-	outb(0xa1, 0x0);
+	outb(0x20, 0x0);
+	outb(0xa0, 0x0);
 
 	irq0_address = (unsigned long)irq0;
 	IDT[32].offset_lowerbits = irq0_address & 0xffff;
-	IDT[32].selector = 0x08; /* KERNEL_CODE_SEGMENT_OFFSET */
+	IDT[32].selector = 0x8; /* KERNEL_CODE_SEGMENT_OFFSET */
 	IDT[32].zero = 0;
-	IDT[32].type_attr = 0x8e; /* INTERRUPT_GATE */
+	IDT[32].type_attr = IDT_FLAG_INTERRUPT_GATE | IDT_FLAG_RING0 | IDT_FLAG_PRESENT; /* INTERRUPT_GATE */
 	IDT[32].offset_higherbits = (irq0_address & 0xffff0000) >> 16;
 
 	irq1_address = (unsigned long)irq1;
 	IDT[33].offset_lowerbits = irq1_address & 0xffff;
 	IDT[33].selector = 0x08; /* KERNEL_CODE_SEGMENT_OFFSET */
 	IDT[33].zero = 0;
-	IDT[33].type_attr = 0x8e; /* INTERRUPT_GATE */
+	IDT[33].type_attr = IDT_FLAG_INTERRUPT_GATE | IDT_FLAG_RING0 | IDT_FLAG_PRESENT; /* INTERRUPT_GATE */
 	IDT[33].offset_higherbits = (irq1_address & 0xffff0000) >> 16;
 
 	irq2_address = (unsigned long)irq2;
@@ -168,7 +168,7 @@ void idt_init(void)
 	IDT[44].offset_lowerbits = irq12_address & 0xffff;
 	IDT[44].selector = 0x08; /* KERNEL_CODE_SEGMENT_OFFSET */
 	IDT[44].zero = 0;
-	IDT[44].type_attr = 0x8e; /* INTERRUPT_GATE */
+	IDT[44].type_attr = IDT_FLAG_INTERRUPT_GATE | IDT_FLAG_RING0 | IDT_FLAG_PRESENT; /* INTERRUPT_GATE */
 	IDT[44].offset_higherbits = (irq12_address & 0xffff0000) >> 16;
 
 	irq13_address = (unsigned long)irq13;
@@ -198,12 +198,23 @@ void idt_init(void)
 	idt_ptr[1] = idt_address >> 16;
 
 	load_idt(idt_ptr);
+
+	outb(0x21, 0x0);
+	outb(0xa1, 0x0);
 }
 
-void irq0_handler(void)
+static uint32_t tss[32] = {0, 0, 0x10};
+struct cpu_state *irq0_handler(struct cpu_state *cpu)
 {
-	// serial_print("IRQ0");
-	outb(0x20, 0x20); //EOI
+	struct cpu_state *new_cpu = cpu;
+	new_cpu = schedule(cpu);
+	tss[1] = (uint32_t)(new_cpu + 1);
+	set_entry(5, (uint32_t)tss, sizeof(tss), GDT_FLAG_TSS | GDT_FLAG_PRESENT | GDT_FLAG_RING3);
+	asm volatile("ltr %%ax"
+				 :
+				 : "a"(5 << 3));
+	outb(0x20, 0x20); // EOI
+	return new_cpu;
 }
 
 void irq1_handler(void);
@@ -211,90 +222,90 @@ void irq1_handler(void);
 void irq2_handler(void)
 {
 	serial_println("IRQ2");
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq3_handler(void)
 {
 	serial_println("IRQ3");
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq4_handler(void)
 {
 	serial_println("IRQ4");
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq5_handler(void)
 {
 	serial_println("IRQ5");
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq6_handler(void)
 {
 	serial_println("IRQ6");
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq7_handler(void)
 {
 	serial_println("IRQ7");
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq8_handler(void)
 {
 	serial_println("IRQ8");
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq9_handler(void)
 {
 	serial_println("IRQ9");
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq10_handler(void)
 {
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq11_handler(void)
 {
 	serial_println("IRQ11");
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq12_handler(void)
 {
 	serial_println("IRQ12");
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq13_handler(void)
 {
 	serial_println("IRQ13");
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq14_handler(void)
 {
 	serial_println("IRQ14");
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }
 
 void irq15_handler(void)
 {
 	serial_println("IRQ15");
 	outb(0xA0, 0x20);
-	outb(0x20, 0x20); //EOI
+	outb(0x20, 0x20); // EOI
 }

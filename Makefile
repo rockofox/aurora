@@ -11,7 +11,7 @@ LD = i386-elf-ld
 
 
 ASFLAGS = -m32
-CFLAGS = -m32 -std=gnu99 -ffreestanding -Wall -Wextra -Wpedantic -fno-stack-protector -fno-builtin
+CFLAGS = -m32 -std=gnu11 -ffreestanding -Wall -Wextra -fno-stack-protector -fno-builtin -g
 # LDFLAGS = -m32 -T linker.ld -ffreestanding -O2 -nostdlib -fno-stack-protector
 LDFLAGS = -melf_i386 -T linker.ld 
 VPATH=obj
@@ -34,6 +34,10 @@ aurora.iso: aurora.bin
 	# 	echo '}' >> iso/boot/grub/grub.cfg
 	# fi
 	grub-mkrescue -o aurora.iso iso
+isodebug: aurora.iso
+	qemu-system-i386 -cdrom aurora.iso -serial stdio -S -gdb tcp::1234 -d cpu_reset -no-reboot -no-shutdown
+isorun: aurora.iso
+	 qemu-system-i386 -cdrom aurora.iso -serial stdio -accel tcg,thread=single -cpu core2duo -smp 1 -m 128 -vga std
 toolchain:
 	mkdir -p build
 	curl -o build/$(TOOLCHAIN).tar.xz http://newos.org/toolchains/$(TOOLCHAIN).tar.xz
@@ -41,7 +45,7 @@ toolchain:
 	rm -f build/$(TOOLCHAIN).tar.xz
 %.o: %.c
 	$(CC) $(CFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
-	$(CC) $(CFLAGS) -g -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 %.o: %.asm
 	nasm -M -MF $(patsubst %.o,%.d,$@) $^
 	nasm -f elf $^ -g -o $@

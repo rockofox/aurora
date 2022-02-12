@@ -11,16 +11,8 @@
 #include "serial.h"
 #include "unistd.h"
 #include "multiboot.h"
-
-// /* Check if the compiler thinks you are targeting the wrong operating system. */
-// #if defined(__linux__)
-// #error "You are not using a cross-compiler, you will most certainly run into trouble"
-// #endif
-
-// /* This tutorial will only work for the 32-bit ix86 targets. */
-// #if !defined(__i386__)
-// #error "This tutorial needs to be compiled with a ix86-elf compiler"
-// #endif
+#include "cpu.h"
+#include "mem.h"
 
 extern void shutdown();
 void flushBuffer()
@@ -60,40 +52,11 @@ void setpixel(int x, int y, unsigned char color)
 		}
 	}
 }
-#define GDT_FLAG_DATASEG 0x02
-#define GDT_FLAG_CODESEG 0x0a
-#define GDT_FLAG_TSS 0x09
-
-#define GDT_FLAG_SEGMENT 0x10
-#define GDT_FLAG_RING0 0x00
-#define GDT_FLAG_RING3 0x60
-#define GDT_FLAG_PRESENT 0x80
-
-#define GDT_FLAG_4K_GRAN 0x800
-#define GDT_FLAG_32_BIT 0x400
-#define GDT_SIZE 6
-uint64_t gdt[GDT_SIZE];
-static void set_entry(int i, unsigned int base, unsigned int limit, int flags)
-{
-	gdt[i] = limit & 0xffffLL;
-	gdt[i] |= (base & 0xffffffLL) << 16;
-	gdt[i] |= (flags & 0xffLL) << 40;
-	gdt[i] |= ((limit >> 16) & 0xfLL) << 48;
-	gdt[i] |= ((flags >> 8) & 0xffLL) << 52;
-	gdt[i] |= ((base >> 24) & 0xffLL) << 56;
-}
-
-void init_gdt(void)
-{
-	set_entry(0, 0, 0, 0);
-	set_entry(1, 0, 0xfffff, GDT_FLAG_SEGMENT | GDT_FLAG_32_BIT | GDT_FLAG_CODESEG | GDT_FLAG_4K_GRAN | GDT_FLAG_PRESENT);
-	set_entry(2, 0, 0xfffff, GDT_FLAG_SEGMENT | GDT_FLAG_32_BIT | GDT_FLAG_DATASEG | GDT_FLAG_4K_GRAN | GDT_FLAG_PRESENT);
-	set_entry(3, 0, 0xfffff, GDT_FLAG_SEGMENT | GDT_FLAG_32_BIT | GDT_FLAG_CODESEG | GDT_FLAG_4K_GRAN | GDT_FLAG_PRESENT | GDT_FLAG_RING3);
-	set_entry(4, 0, 0xfffff, GDT_FLAG_SEGMENT | GDT_FLAG_32_BIT | GDT_FLAG_DATASEG | GDT_FLAG_4K_GRAN | GDT_FLAG_PRESENT | GDT_FLAG_RING3);
-
-	setGdt(gdt, sizeof(gdt) * sizeof(gdtEntry));
-	reloadSegments();
-}
+#define lambda(return_type, function_body) \
+	({                                     \
+		return_type __fn__ function_body   \
+			__fn__;                        \
+	})
 
 framebuffer_t fb;
 void kernel_main(uint32_t magic, multiboot_info_t *mbi)
@@ -125,11 +88,11 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	screen = mbi->framebuffer_addr;
 
 	init_gdt();
-
 	/* Initialize terminal interface */
 	terminal_initialize(&fb);
+	init_memory_management(mbi);
 
-	// outb(0x43,0x36);
+	// outb(0x43, 0x36);
 	// outb(0x40, 1193182 / 65536);
 
 	/* Newline support is left as an exercise. */
