@@ -30,7 +30,9 @@ void execute(char *cmd)
 		// char c[20];
 		// itoa(IDT[0].offset_higherbits, c, 10);
 		// serial_println(c);
-		asm volatile("int $33");
+		asm volatile("int $0x80"
+					 :
+					 : "a"(0), "b"('a'));
 	}
 	else if (strcmp("shutdown", cmd) == 0)
 	{

@@ -1,3 +1,4 @@
 #pragma once
-void kprintln(const char* data);
-void kprint(const char* data);
+void kprintln(const char *data);
+void kprint(const char *data);
+void kputc(char c);

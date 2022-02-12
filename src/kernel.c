@@ -61,6 +61,7 @@ void setpixel(int x, int y, unsigned char color)
 framebuffer_t fb;
 void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 {
+	mark_used(mbi);
 	init_serial();
 	serial_println("Serial initialized");
 	if (magic != 0x2BADB002)
@@ -74,6 +75,7 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	if ((void *)(uint32_t)mbi->framebuffer_addr != NULL && mbi->framebuffer_type != MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT)
 	{
 		fb.addr = (void *)(uint32_t)mbi->framebuffer_addr;
+		// fb.addr = -0x3000000;
 		fb.width = mbi->framebuffer_width;
 		fb.height = mbi->framebuffer_height;
 		fb.pitch = mbi->framebuffer_pitch;
@@ -87,6 +89,8 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	}
 	screen = mbi->framebuffer_addr;
 
+	serial_printf("%d modules loaded\n", mbi->mods_count);
+
 	init_gdt();
 	/* Initialize terminal interface */
 	terminal_initialize(&fb);
@@ -98,9 +102,24 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	/* Newline support is left as an exercise. */
 	// NMI_disable();
 	idt_init();
+	multiboot_module_t *modules = (struct multiboot_module_t *)mbi->mods_addr;
+	mark_used(modules);
+	for (uint16_t i = 0; i < mbi->mods_count; i++)
+	{
+		multiboot_module_t *addr = modules[i].mod_start;
+		void *load_addr = (void *)0x200000;
+		memcpy(load_addr, addr, modules[i].mod_end - modules[i].mod_start);
+		create_task(load_addr);
+		while (addr < modules[i].mod_end)
+		{
+			mark_used(addr);
+			addr += 0x1000;
+		}
+	}
 
 	kprintln("AuroraOS wip");
 	kprint(PROMPT);
+
 	// scrollback_write("Hello scrollback");
 	// terminal_scrollback();
 

@@ -37,7 +37,7 @@ aurora.iso: aurora.bin
 isodebug: aurora.iso
 	qemu-system-i386 -cdrom aurora.iso -serial stdio -S -gdb tcp::1234 -d cpu_reset -no-reboot -no-shutdown
 isorun: aurora.iso
-	 qemu-system-i386 -cdrom aurora.iso -serial stdio -accel tcg,thread=single -cpu core2duo -smp 1 -m 128 -vga std
+	 qemu-system-i386 -cdrom aurora.iso -serial stdio -accel tcg,thread=single -cpu core2duo -smp 1 -m 128 -vga std # -d int -no-reboot
 toolchain:
 	mkdir -p build
 	curl -o build/$(TOOLCHAIN).tar.xz http://newos.org/toolchains/$(TOOLCHAIN).tar.xz

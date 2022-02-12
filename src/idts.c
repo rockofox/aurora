@@ -32,6 +32,8 @@ void idt_init(void)
 	extern int irq13();
 	extern int irq14();
 	extern int irq15();
+	extern int generic_irq();
+	extern int irq80();
 
 	unsigned long irq0_address;
 	unsigned long irq1_address;
@@ -49,20 +51,10 @@ void idt_init(void)
 	unsigned long irq13_address;
 	unsigned long irq14_address;
 	unsigned long irq15_address;
+	unsigned long generic_irq_address;
+	unsigned long irq80_address;
 	unsigned long idt_address;
 	unsigned long idt_ptr[2];
-
-	/* remapping the PIC */
-	// outb(0x20, 0x11);
-	// outb(0xA0, 0x11);
-	// outb(0x21, 0x20);
-	// outb(0xA1, 40);
-	// outb(0x21, 0x04);
-	// outb(0xA1, 0x02);
-	// outb(0x21, 0x01);
-	// outb(0xA1, 0x01);
-	// outb(0x21, 0x0);
-	// outb(0xA1, 0x0);
 
 	// Master-PIC initialisieren
 	outb(0x20, 0x11); // Initialisierungsbefehl fuer den PIC
@@ -192,6 +184,20 @@ void idt_init(void)
 	IDT[47].type_attr = 0x8e; /* INTERRUPT_GATE */
 	IDT[47].offset_higherbits = (irq15_address & 0xffff0000) >> 16;
 
+	generic_irq_address = (unsigned long)generic_irq;
+	IDT[0x0d].offset_lowerbits = generic_irq_address & 0xffff;
+	IDT[0x0d].selector = 0x08; /* KERNEL_CODE_SEGMENT_OFFSET */
+	IDT[0x0d].zero = 0;
+	IDT[0x0d].type_attr = 0x8e; /* INTERRUPT_GATE */
+	IDT[0x0d].offset_higherbits = (generic_irq_address & 0xffff0000) >> 16;
+
+	irq80_address = (unsigned long)irq80;
+	IDT[0x80].offset_lowerbits = irq80_address & 0xffff;
+	IDT[0x80].selector = 0x08; /* KERNEL_CODE_SEGMENT_OFFSET */
+	IDT[0x80].zero = 0;
+	IDT[0x80].type_attr = IDT_FLAG_INTERRUPT_GATE | IDT_FLAG_RING3 | IDT_FLAG_PRESENT; /* INTERRUPT_GATE */
+	IDT[0x80].offset_higherbits = (irq80_address & 0xffff0000) >> 16;
+
 	/* fill the IDT descriptor */
 	idt_address = (unsigned long)IDT;
 	idt_ptr[0] = (sizeof(struct IDT_entry) * 256) + ((idt_address & 0xffff) << 16);
@@ -308,4 +314,25 @@ void irq15_handler(void)
 	serial_println("IRQ15");
 	outb(0xA0, 0x20);
 	outb(0x20, 0x20); // EOI
+}
+struct cpu_state *generic_irq_handler(struct cpu_state *cpu)
+{
+	serial_printf("General protection fault");
+	while (1)
+	{
+	}
+	return cpu;
+}
+struct cpu_state *irq80_handler(struct cpu_state *cpu)
+{
+	switch (cpu->eax)
+	{
+	case 0:
+		kputc(cpu->ebx);
+		break;
+	default:
+		serial_printf("Unknown syscall: %d\n", cpu->eax);
+		break;
+	}
+	return cpu;
 }

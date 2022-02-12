@@ -15,6 +15,8 @@ global irq12
 global irq13
 global irq14
 global irq15
+global generic_irq
+global irq80
 
 global load_idt
 
@@ -35,6 +37,8 @@ extern irq12_handler
 extern irq13_handler
 extern irq14_handler
 extern irq15_handler
+extern generic_irq_handler
+extern irq80_handler
 
 section .text
 %macro push_cpu_state 0
@@ -164,6 +168,26 @@ irq15:
     pusha
     call irq15_handler
     popa
+    iret
+generic_irq:
+    push 0
+    push 0
+    push_cpu_state
+    push esp
+    call generic_irq_handler
+    mov esp, eax
+    pop_cpu_state
+    add esp, 8
+    iret
+irq80:
+    push 0
+    push 0
+    push_cpu_state
+    push esp
+    call irq80_handler
+    mov esp, eax
+    pop_cpu_state
+    add esp, 8
     iret
 
 load_idt:
