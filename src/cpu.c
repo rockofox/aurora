@@ -6,6 +6,7 @@
 #include "serial.h"
 #include "mem.h"
 #include "framebuffer.h"
+#include "elf.h"
 
 struct task_node
 {
@@ -77,6 +78,30 @@ void create_task(void *entry)
         task_node->pid = last_task->pid + 1;
         last_task->next = task_node;
     }
+}
+void launch_elf(void *image)
+{
+    struct elf_header *header = (struct elf_header *)image;
+    struct elf_program_header *program_header;
+    if (header->magic != ELF_MAGIC)
+    {
+        serial_printf("Tried to load invalid ELF file (0x464C457F != 0x%x) \n", header->magic);
+        return;
+    }
+    program_header = ((char *)image + header->ph_offset);
+    for (int i = 0; i < header->ph_entry_count; i++)
+    {
+        void *dest = (void *)(program_header[i].virt_addr);
+        void *src = (char *)image + program_header[i].offset;
+        if (program_header->type != 1)
+        {
+            serial_printf("Skipping unsupported elf header with type %d\n", program_header->type);
+            continue;
+        }
+        memset(dest, 0, program_header->mem_size);
+        memcpy(dest, src, program_header->file_size);
+    }
+    create_task((void *)header->entry);
 }
 void idle()
 {

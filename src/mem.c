@@ -9,11 +9,20 @@ extern const void kernel_end;
 
 void *memcpy(void *destination, const void *source, size_t num)
 {
-    long *d = destination;
-    const long *s = source;
+    uint8_t *dst = (uint8_t *)destination;
+    uint8_t *src = (uint8_t *)source;
     for (size_t i = 0; i < num; i++)
     {
-        d[i] = s[i];
+        dst[i] = src[i];
+    }
+    return destination;
+}
+void *memset(void *destination, int value, size_t num)
+{
+    long *d = destination;
+    for (size_t i = 0; i < num; i++)
+    {
+        d[i] = value;
     }
     return destination;
 }

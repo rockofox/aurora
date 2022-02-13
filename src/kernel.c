@@ -115,9 +115,7 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	for (uint16_t i = 0; i < mbi->mods_count; i++)
 	{
 		multiboot_module_t *addr = modules[i].mod_start;
-		void *load_addr = (void *)0x200000;
-		memcpy(load_addr, addr, modules[i].mod_end - modules[i].mod_start);
-		create_task(load_addr);
+		launch_elf(addr);
 		while (addr < modules[i].mod_end)
 		{
 			mark_used(addr);
