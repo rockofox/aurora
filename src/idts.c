@@ -210,6 +210,7 @@ void idt_init(void)
 }
 
 static uint32_t tss[32] = {0, 0, 0x10};
+
 struct cpu_state *irq0_handler(struct cpu_state *cpu)
 {
 	struct cpu_state *new_cpu = cpu;
@@ -329,6 +330,9 @@ struct cpu_state *irq80_handler(struct cpu_state *cpu)
 	{
 	case 0:
 		kputc(cpu->ebx);
+		break;
+	case 1:
+		kill_current_task();
 		break;
 	default:
 		serial_printf("Unknown syscall: %d\n", cpu->eax);

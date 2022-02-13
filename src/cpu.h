@@ -23,3 +23,4 @@ struct cpu_state
 void init_multitasking(void);
 struct cpu_state *schedule(struct cpu_state *cpu);
 void create_task(void *entry);
+void kill_current_task();

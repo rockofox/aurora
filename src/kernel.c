@@ -102,6 +102,14 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	/* Newline support is left as an exercise. */
 	// NMI_disable();
 	idt_init();
+	create_task(lambda(
+		void,
+		()
+		{
+			while (1)
+			{
+			}
+		}));
 	multiboot_module_t *modules = (struct multiboot_module_t *)mbi->mods_addr;
 	mark_used(modules);
 	for (uint16_t i = 0; i < mbi->mods_count; i++)
@@ -116,6 +124,19 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 			addr += 0x1000;
 		}
 	}
+
+	create_task(lambda(
+		void,
+		()
+		{
+			kprintln("Hello, world!\n");
+			asm volatile("int $0x80"
+						 :
+						 : "a"(0x1));
+			while (1)
+			{
+			}
+		}));
 
 	kprintln("AuroraOS wip");
 	kprint(PROMPT);

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "stdio.h"
 #include "cpu.h"
 #include "serial.h"
@@ -9,6 +10,7 @@
 struct task_node
 {
     struct cpu_state *cpu_state;
+    uint32_t pid;
     struct task_node *next;
 };
 
@@ -52,14 +54,17 @@ struct task_node *init_task(void *entry)
     struct task_node *task_node = alloc_block();
     task_node->cpu_state = state;
     task_node->next = NULL;
+    task_node->pid = 0;
     return task_node;
 }
+bool scheduler_locked = false;
 
 void create_task(void *entry)
 {
     struct task_node *task_node = init_task(entry);
     if (task_list == NULL)
     {
+        task_node->pid = 0;
         task_list = task_node;
     }
     else
@@ -69,6 +74,7 @@ void create_task(void *entry)
         {
             last_task = last_task->next;
         }
+        task_node->pid = last_task->pid + 1;
         last_task->next = task_node;
     }
 }
@@ -81,8 +87,23 @@ void idle()
 void init_multitasking(void)
 {
 }
+void kill_current_task()
+{
+    // scheduler_locked = true;
+    serial_printf("Killing %d\n", current_task->pid);
+    struct task_node *task = task_list;
+    while (task->next != current_task)
+    {
+        task = task->next;
+    }
+    task->next = current_task->next;
+}
 struct cpu_state *schedule(struct cpu_state *cpu)
 {
+    if (scheduler_locked)
+    {
+        return cpu;
+    }
     if (task_list == NULL)
     {
         return cpu;
