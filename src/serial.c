@@ -39,7 +39,7 @@ void serial_println(char *str)
 void serial_printf(char *str, ...)
 {
     char *arg;
-    int i = 0;
+    uint32_t i = 0;
     char n[10];
     va_list args;
     va_start(args, str);
@@ -51,12 +51,12 @@ void serial_printf(char *str, ...)
             switch (*str)
             {
             case 'd':
-                arg = va_arg(args, int);
+                arg = va_arg(args, uint32_t);
                 itoa(arg, n, 10);
                 serial_print(n);
                 break;
             case 'x':
-                arg = va_arg(args, int);
+                arg = va_arg(args, uint32_t);
                 itoa(arg, n, 16);
                 serial_print(n);
                 break;

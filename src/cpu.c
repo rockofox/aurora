@@ -7,13 +7,7 @@
 #include "mem.h"
 #include "framebuffer.h"
 #include "elf.h"
-
-struct task_node
-{
-    struct cpu_state *cpu_state;
-    uint32_t pid;
-    struct task_node *next;
-};
+#include "virtmem.h"
 
 static struct task_node *task_list = NULL;
 static struct task_node *current_task = NULL;
@@ -56,10 +50,21 @@ struct task_node *init_task(void *entry)
     task_node->cpu_state = state;
     task_node->next = NULL;
     task_node->pid = 0;
+    task_node->context = create_vmem_context();
+    vmem_copy_kernel_page_directory(task_node->context);
+    // task_node->cr3 = (uint32_t)vmem_virt_to_phys(vmem_get_kernel_context(), task_node->context->pagedir);
+    // for (uint32_t i = 0; i < 4096 * 1024; i += 0x1000)
+    // {
+    //     vmem_map_page(task_node->context, i, 0x810000 + i);
+    // }
+
     return task_node;
 }
 bool scheduler_locked = false;
-
+void set_scheduler_locked(bool locked)
+{
+    scheduler_locked = locked;
+}
 void create_task(void *entry)
 {
     struct task_node *task_node = init_task(entry);
@@ -79,8 +84,36 @@ void create_task(void *entry)
         last_task->next = task_node;
     }
 }
+void append_task(struct task_node *task)
+{
+    asm("cli");
+    if (task_list == NULL)
+    {
+        task->pid = 0;
+        task_list = task;
+    }
+    else
+    {
+        struct task_node *last_task = task_list;
+        while (last_task->next != NULL)
+        {
+            last_task = last_task->next;
+        }
+        task->pid = last_task->pid + 1;
+        last_task->next = task;
+    }
+    asm("sti");
+}
+uint32_t last_load_addr = 0x200000;
+uint32_t get_free_load_addr()
+{
+    uint32_t addr = last_load_addr;
+    last_load_addr += 0x1000;
+    return addr;
+}
 void launch_elf(void *image)
 {
+    struct task_node *task_node = init_task(image);
     struct elf_header *header = (struct elf_header *)image;
     struct elf_program_header *program_header;
     if (header->magic != ELF_MAGIC)
@@ -89,6 +122,7 @@ void launch_elf(void *image)
         return;
     }
     program_header = ((char *)image + header->ph_offset);
+    uint32_t free_load_addr = get_free_load_addr();
     for (int i = 0; i < header->ph_entry_count; i++)
     {
         void *dest = (void *)(program_header[i].virt_addr);
@@ -98,10 +132,14 @@ void launch_elf(void *image)
             serial_printf("Skipping unsupported elf header with type %d\n", program_header->type);
             continue;
         }
+        serial_printf("\t\t beep\n");
+        vmem_map_page(task_node->context, program_header->virt_addr, free_load_addr);
+        // vmem_map_page(task_node->context, program_header->virt_addr, program_header->phys_addr);
         memset(dest, 0, program_header->mem_size);
         memcpy(dest, src, program_header->file_size);
     }
-    create_task((void *)header->entry);
+    task_node->cpu_state->eip = header->entry;
+    append_task(task_node);
 }
 void idle()
 {
@@ -114,7 +152,14 @@ void init_multitasking(void)
 }
 void kill_current_task()
 {
-    // scheduler_locked = true;
+    // return;
+    if (current_task->pid == 0)
+    {
+        // serial_printf("Can't kill init task\n");
+        return;
+    }
+    asm volatile("cli");
+    scheduler_locked = true;
     serial_printf("Killing %d\n", current_task->pid);
     struct task_node *task = task_list;
     while (task->next != current_task)
@@ -122,6 +167,17 @@ void kill_current_task()
         task = task->next;
     }
     task->next = current_task->next;
+    if (task->next != NULL)
+    {
+        current_task = task->next;
+    }
+    else
+    {
+        current_task = task_list;
+    }
+    scheduler_locked = false;
+
+    asm volatile("sti");
 }
 struct cpu_state *schedule(struct cpu_state *cpu)
 {
@@ -141,13 +197,20 @@ struct cpu_state *schedule(struct cpu_state *cpu)
     {
         if (current_task->next != NULL)
         {
+            // serial_printf("Switching to %d\n", current_task->next->pid);
             current_task = current_task->next;
         }
         else
         {
+            // serial_printf("Switching to %d\n", task_list->pid);
             current_task = task_list;
         }
     }
     // serial_printf("0x%x\n", current_task);
+    // serial_printf("Switching to %d\n", current_task->pid);
     return current_task->cpu_state;
+}
+struct task_node *get_current_task()
+{
+    return current_task;
 }

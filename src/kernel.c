@@ -13,6 +13,7 @@
 #include "multiboot.h"
 #include "cpu.h"
 #include "mem.h"
+#include "virtmem.h"
 
 extern void shutdown();
 void flushBuffer()
@@ -74,8 +75,9 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	}
 	if ((void *)(uint32_t)mbi->framebuffer_addr != NULL && mbi->framebuffer_type != MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT)
 	{
-		fb.addr = (void *)(uint32_t)mbi->framebuffer_addr;
-		// fb.addr = -0x3000000;
+		// fb.addr = (void *)(uint32_t)mbi->framebuffer_addr;
+		fb.addr = 0x400000;
+		// serial_printf("Framebuffer at 0x%x\n", (uint32_t)mbi->framebuffer_addr);
 		fb.width = mbi->framebuffer_width;
 		fb.height = mbi->framebuffer_height;
 		fb.pitch = mbi->framebuffer_pitch;
@@ -88,20 +90,27 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 		fb.blue_field_position = mbi->framebuffer_blue_field_position;
 	}
 	screen = mbi->framebuffer_addr;
+	// set_scheduler_locked(true);
 
-	serial_printf("%d modules loaded\n", mbi->mods_count);
+	init_memory_management(mbi);
+	init_virtmem(mbi);
 
 	init_gdt();
+	idt_init();
+
 	/* Initialize terminal interface */
 	terminal_initialize(&fb);
-	init_memory_management(mbi);
+
+	kprintln("AuroraOS wip");
+	kprint(PROMPT);
 
 	// outb(0x43, 0x36);
 	// outb(0x40, 1193182 / 65536);
 
 	/* Newline support is left as an exercise. */
 	// NMI_disable();
-	idt_init();
+	// framebuffer_draw_rect(&fb, 0, 0, 123, 123, 0xFF);
+
 	create_task(lambda(
 		void,
 		()
@@ -110,6 +119,23 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 			{
 			}
 		}));
+
+	serial_printf("%d modules loaded\n", mbi->mods_count);
+	create_task(lambda(
+		void,
+		()
+		{
+			kprintln("Hello, world!\n");
+			serial_println("Hello, World!");
+			asm volatile("int $0x80"
+						 :
+						 : "a"(0x1));
+			while (1)
+			{
+			}
+		}));
+	set_scheduler_locked(true);
+	serial_println("Loading multiboot modules");
 	multiboot_module_t *modules = (struct multiboot_module_t *)mbi->mods_addr;
 	mark_used(modules);
 	for (uint16_t i = 0; i < mbi->mods_count; i++)
@@ -119,25 +145,11 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 		while (addr < modules[i].mod_end)
 		{
 			mark_used(addr);
-			addr += 0x1000;
+			addr++;
 		}
 	}
-
-	create_task(lambda(
-		void,
-		()
-		{
-			kprintln("Hello, world!\n");
-			asm volatile("int $0x80"
-						 :
-						 : "a"(0x1));
-			while (1)
-			{
-			}
-		}));
-
-	kprintln("AuroraOS wip");
-	kprint(PROMPT);
+	serial_println("All modules loaded");
+	set_scheduler_locked(false);
 
 	// scrollback_write("Hello scrollback");
 	// terminal_scrollback();

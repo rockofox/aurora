@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "multiboot.h"
+#include "serial.h"
 
 #define BITMAP_SIZE 32768
 static uint32_t bitmap[BITMAP_SIZE];
@@ -67,8 +68,10 @@ void *alloc_block()
     {
         if (bitmap[i] == 0)
         {
+            const uint32_t new_address = i * 4096;
             bitmap[i] = 1;
-            return (void *)(i * 4096);
+            // serial_printf("Allocated block at 0x%x\n", new_address);
+            return (void *)(new_address);
         }
     }
     return NULL;
