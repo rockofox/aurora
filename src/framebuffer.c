@@ -23,6 +23,10 @@ void framebuffer_set_pixel(framebuffer_t *fb, uint32_t x, uint32_t y, uint32_t c
 }
 void framebuffer_draw_rect(framebuffer_t *fb, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color)
 {
+    if (x + width > fb->width || y + height > fb->height)
+    {
+        return;
+    }
     uint32_t *pixel = fb->addr + fb->pitch * y + (fb->bpp / 8) * x;
     for (uint32_t i = 0; i < height; i++)
     {
@@ -52,6 +56,19 @@ void draw_xbm(framebuffer_t *fb, uint32_t x, uint32_t y, uint32_t width, uint32_
             else
             {
                 // serial_println("0");
+            }
+        }
+    }
+}
+void draw_xbm_scaled(framebuffer_t *fb, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *xbm, uint32_t scale)
+{
+    for (uint32_t i = 0; i < width; i++)
+    {
+        for (uint32_t j = 0; j < height; j++)
+        {
+            if (xbm[j] & 1 << i)
+            {
+                framebuffer_draw_rect(fb, x + i * scale, y + j * scale, scale, scale, color(255, 255, 255));
             }
         }
     }

@@ -4,10 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "framebuffer.h"
-#define PROMPT "> "
+#define PROMPT "$ "
+#define FONT_SCALE 1
 #define VGA_WIDTH 100
-#define VGA_HEIGHT 80
-// TODO: Split terminal and text mode code base
+#define VGA_HEIGHT 80 / FONT_SCALE
 
 extern size_t terminal_column;
 extern size_t terminal_row;

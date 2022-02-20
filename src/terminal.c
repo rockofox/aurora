@@ -49,19 +49,8 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
 
 void terminal_initialize(framebuffer_t *fb)
 {
-    terminal_row = 0;
-    terminal_column = 0;
-    terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-    terminal_buffer = (uint16_t *)0xB8000;
+
     framebuffer = fb;
-    for (size_t y = 0; y < VGA_HEIGHT; y++)
-    {
-        for (size_t x = 0; x < VGA_WIDTH; x++)
-        {
-            const size_t index = y * VGA_WIDTH + x;
-            terminal_buffer[index] = vga_entry(' ', terminal_color);
-        }
-    }
 }
 
 void terminal_setcolor(uint8_t color)
@@ -73,12 +62,11 @@ void terminal_rawentryat(uint16_t ent, size_t x, size_t y)
     const size_t index = y * VGA_WIDTH + x;
     if (ent != 0)
     {
-        draw_xbm(framebuffer, x * 8, y * 8, 8, 8, font8x8_basic[(char)ent]);
+        draw_xbm_scaled(framebuffer, x * 8 * FONT_SCALE, y * 8 * FONT_SCALE, 8, 8, font8x8_basic[(char)ent], FONT_SCALE);
     }
     else
     {
-
-        framebuffer_draw_rect(framebuffer, x * 8, y * 8, 8, 8, 0);
+        framebuffer_draw_rect(framebuffer, x * 8 * FONT_SCALE, y * 8 * FONT_SCALE, 8 * FONT_SCALE, 8 * FONT_SCALE, 0x0);
     }
 
     // terminal_buffer[index] = ent;

@@ -14,6 +14,7 @@
 #include "cpu.h"
 #include "mem.h"
 #include "virtmem.h"
+#include "font8x8/font8x8_basic.h"
 
 extern void shutdown();
 void flushBuffer()
@@ -110,7 +111,7 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	/* Newline support is left as an exercise. */
 	// NMI_disable();
 	// framebuffer_draw_rect(&fb, 0, 0, 123, 123, 0xFF);
-
+	// draw_xbm_scaled(&fb, 120, 120, 8, 8, font8x8_basic['A'], 10);
 	create_task(lambda(
 		void,
 		()
