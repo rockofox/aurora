@@ -68,3 +68,4 @@ aurora.bin
 
 build/
 aurora.iso
+**/*.img

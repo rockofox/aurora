@@ -184,7 +184,7 @@ void idt_init(void)
     IDT[46].offset_lowerbits = irq14_address & 0xffff;
     IDT[46].selector = 0x08; /* KERNEL_CODE_SEGMENT_OFFSET */
     IDT[46].zero = 0;
-    IDT[46].type_attr = 0x8e; /* INTERRUPT_GATE */
+    IDT[46].type_attr = IDT_FLAG_INTERRUPT_GATE | IDT_FLAG_RING0 | IDT_FLAG_PRESENT; /* INTERRUPT_GATE */
     IDT[46].offset_higherbits = (irq14_address & 0xffff0000) >> 16;
 
     irq15_address = (unsigned long)irq15;
@@ -323,6 +323,7 @@ void irq9_handler(void)
 
 void irq10_handler(void)
 {
+    serial_println("IRQ10");
     outb(0xA0, 0x20);
     outb(0x20, 0x20); // EOI
 }
@@ -378,6 +379,10 @@ struct cpu_state *pf_irq_handler(struct cpu_state *cpu)
         kill_current_task();
         return cpu;
     }
+    // if (cpu->intr == 4294967295)
+    // {
+    //     return cpu;
+    // }
     const uint32_t ERR_PRESENT = 1 << 0;
     const uint32_t ERR_RW = 1 << 1;
     const uint32_t ERR_USER = 1 << 2;
@@ -406,9 +411,9 @@ struct cpu_state *pf_irq_handler(struct cpu_state *cpu)
         serial_printf("Instruction fetch ");
     serial_printf("]\n");
 
-    // while (1)
-    // {
-    // }
+    while (1)
+    {
+    }
     return cpu;
 }
 struct cpu_state *irq80_handler(struct cpu_state *cpu)

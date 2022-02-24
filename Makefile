@@ -11,7 +11,7 @@ LD = i386-elf-ld
 
 
 ASFLAGS = -m32
-CFLAGS = -m32 -std=gnu11 -ffreestanding -Wall -Wextra -fno-stack-protector -fno-builtin -g
+CFLAGS = -m32 -std=gnu11 -ffreestanding -Wall -Wextra -fno-stack-protector -fno-builtin -isystem src/std -g
 # LDFLAGS = -m32 -T linker.ld -ffreestanding -O2 -nostdlib -fno-stack-protector
 LDFLAGS = -melf_i386 -T linker.ld 
 VPATH=obj
@@ -35,9 +35,9 @@ aurora.iso: aurora.bin
 	# fi
 	grub-mkrescue -o aurora.iso iso
 isodebug: aurora.iso
-	qemu-system-i386 -cdrom aurora.iso -serial stdio -accel kvm -S -gdb tcp::1234 -d cpu_reset -no-reboot -no-shutdown
+	qemu-system-i386 -cdrom aurora.iso -serial stdio -S -gdb tcp::1234 -d cpu_reset -no-reboot -no-shutdown -drive format=raw,file=test.img -boot d
 isorun: aurora.iso
-	 qemu-system-i386 -cdrom aurora.iso -serial stdio -accel kvm -smp 1 -m 128 -vga std
+	 qemu-system-i386 -cdrom aurora.iso -serial stdio -accel kvm -smp 1 -m 128 -vga std -machine pc -drive format=raw,if=ide,index=0,file=test.img -boot d
 isoverbose: aurora.iso
 	 qemu-system-i386 -cdrom aurora.iso -serial stdio -accel kvm -smp 1 -m 128 -vga std -d int,cpu_reset
 toolchain:
@@ -52,7 +52,7 @@ toolchain:
 	nasm -M -MF $(patsubst %.o,%.d,$@) $^
 	nasm -f elf $^ -g -o $@
 
-clean:
-	rm $(OBJS) $(DEPS)
 
 .PHONY: clean
+clean:
+	rm $(OBJS) $(DEPS)

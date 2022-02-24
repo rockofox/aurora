@@ -5,7 +5,7 @@
 #include "idts.h"
 #include "gdt.h"
 #include "terminal.h"
-#include "string.h"
+#include <string.h>
 #include "stdio.h"
 #include "keyboard.h"
 #include "serial.h"
@@ -15,6 +15,7 @@
 #include "mem.h"
 #include "virtmem.h"
 #include "font8x8/font8x8_basic.h"
+#include "fs/ff14b/source/ff.h"
 
 extern void shutdown();
 void flushBuffer()
@@ -59,7 +60,7 @@ void setpixel(int x, int y, unsigned char color)
 		return_type __fn__ function_body   \
 			__fn__;                        \
 	})
-
+int test_ff();
 framebuffer_t fb;
 void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 {
@@ -99,6 +100,8 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	init_gdt();
 	idt_init();
 
+	// test_ff();
+
 	/* Initialize terminal interface */
 	terminal_initialize(&fb);
 
@@ -112,6 +115,44 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	// NMI_disable();
 	// framebuffer_draw_rect(&fb, 0, 0, 123, 123, 0xFF);
 	// draw_xbm_scaled(&fb, 120, 120, 8, 8, font8x8_basic['A'], 10);
+	// scrollback_write("Hello scrollback");
+	// terminal_scrollback();
+	// // fat_extBS_32_t *bs = alloc_block();
+	// uint8_t bs[512 * 12] = {0};
+	// for (uint32_t i = 0;; i++)
+	// {
+	// 	ata_read_sectors(bs, i, 1);
+	// 	// for (uint32_t j = 0; j < 512; j++)
+	// 	// {
+	// 	// 	// write_serial(bs[j]);
+	// 	// 	serial_printf("%x ", bs[j]);
+	// 	// }
+	// 	// serial_println("");
+	// 	// serial_println("___________________");
+	// 	// serial_printf("%x ", bs[0]);
+	// 	if (bs[0] == 0xeb)
+	// 	{
+	// 		serial_printf("\e[1;34mFound boot sector at block 0x%x\e[m\n", i);
+	// 		// for (int i = 0; i < 512; i++)
+	// 		// {
+	// 		// 	serial_printf("%x ", bs[i]);
+	// 		// }
+	// 		fat_extBS_32_t *abs = (fat_extBS_32_t *)bs;
+	// 		serial_printf("Name: %s\n", abs->stuff);
+	// 		break;
+	// 	}
+	// 	// Find LBA
+	// 	if (bs[0] == 0x0B)
+	// 	// memset(bs, 0, 512);
+	// }
+	// unsigned char buf[512] = {0};
+	// ata_read_sectors(buf, 0, 1);
+	// uint32_t papos = ((mbr_t *)buf)->partitions[0].first_sector_lba;
+	// ata_read_sectors(buf, papos, 1);
+	// ata_read_sectors(buf, papos + fat32_get_first_data_sector(buf), 1);
+	// fat_dir_entry_t *de = (fat_dir_entry_t *)(buf + 0x20 * 2);
+	// uint32_t i = fat32_find_cluster(*de);
+
 	create_task(lambda(
 		void,
 		()
@@ -127,7 +168,7 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 		()
 		{
 			kprintln("Hello, world!\n");
-			serial_println("Hello, World!");
+			// serial_println("Hello, World!");
 			asm volatile("int $0x80"
 						 :
 						 : "a"(0x1));
@@ -152,9 +193,18 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	serial_println("All modules loaded");
 	set_scheduler_locked(false);
 
-	// scrollback_write("Hello scrollback");
-	// terminal_scrollback();
-
+	serial_println("");
+	FRESULT res;
+	FATFS fs;
+	res = f_mount(&fs, "", 0);
+	if (res != FR_OK)
+	{
+		serial_println("Failed to mount filesystem");
+	}
+	else
+	{
+		serial_println("Filesystem mounted");
+	}
 	while (1)
 	{
 		// kprintln("AuroraOS wip");

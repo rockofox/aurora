@@ -172,8 +172,8 @@ irq15:
     popa
     iret
 generic_irq:
-    push 0
-    push 0
+    ; push 0
+    ; push 0
     push_cpu_state
     push esp
     call generic_irq_handler

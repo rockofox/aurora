@@ -6,6 +6,8 @@
 #include "serial.h"
 #include "string.h"
 #include "idts.h"
+#include "fs/ff14b/source/ff.h"
+#include "cpu.h"
 
 char layout[60] = "1234567890-=<>qwertyuiop[]?\\asdfghjkl;'!@#zxcvbnm,./";
 char buffer[200] = "";
@@ -13,8 +15,21 @@ bool shiftKey = false;
 bool ctrlKey = false;
 enum KeyState keyMatrix[64] = {false};
 enum KeyState prevMatrix[64] = {false};
-void execute(char *cmd)
+void execute(char *input)
 {
+	if (input == NULL || input[0] == '\0')
+	{
+		return;
+	}
+	char *argv[100];
+	char *reserve;
+	uint8_t argc = 0;
+	argv[argc] = strtok_r(input, " ", &reserve);
+	while (argv[argc] != NULL)
+	{
+		argv[++argc] = strtok_r(NULL, " ", &reserve);
+	}
+	char *cmd = argv[0];
 	if (strcmp("test", cmd) == 0)
 	{
 		kprint("it works!");
@@ -58,11 +73,63 @@ void execute(char *cmd)
 		kprintln("Lorem ipsum dolor sit amet, consetetur sadipscing elitr,");
 		kprintln("sed diam nonumy eirmod tempor invidunt ut labore et d");
 	}
+	else if (strcmp("ls", cmd) == 0)
+	{
+		DIR dir;
+		FRESULT res = f_opendir(&dir, "/");
+		if (res != FR_OK)
+		{
+			kprintf("Error opening directory: %d\n", res);
+			return;
+		}
+		FILINFO fileInfo;
+		while (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0')
+		{
+			kprint(fileInfo.fname);
+			kprint("\n");
+		}
+	}
+	else if (strcmp("cat", cmd) == 0)
+	{
+		FRESULT res;
+
+		FIL *fp = alloc_block();
+		res = f_open(fp, argv[1], FA_READ);
+		if (res != FR_OK)
+		{
+			serial_println("Failed to open file");
+		}
+		else
+		{
+			serial_println("File opened");
+		}
+		char buf[512] = {0};
+		FRESULT rs = f_read(fp, buf, 512, NULL);
+		kprintln(buf);
+		f_close(fp);
+	}
 	else
 	{
-		char msg[50] = "Unknown command ";
-		strcat(msg, cmd);
-		kprintln(msg);
+		FRESULT res;
+
+		FIL *fp = alloc_block();
+		res = f_open(fp, argv[0], FA_READ);
+		if (res != FR_OK)
+		{
+			serial_println("Failed to open file");
+			return;
+		}
+		else
+		{
+			serial_println("File opened");
+		}
+		char *buf = alloc_block();
+		FRESULT rs = f_read(fp, buf, 512, NULL);
+		launch_elf(buf);
+		f_close(fp);
+		// char msg[50] = "Unknown command ";
+		// strcat(msg, cmd);
+		// kprintln(msg);
 	}
 }
 
@@ -122,8 +189,31 @@ void irq1_handler(void)
 		if (keyMatrix[i] != prevMatrix[i] && keyMatrix[i] == Pressed && layout[i] != '@' && layout[i] != '?' && layout[i] != '<' && !ctrlKey)
 		{
 			char c = layout[i];
+			if (i == 55)
+			{
+				c = ' ';
+			}
 			if (shiftKey)
-				c &= 0xdf;
+			{
+				// c &= 0xdf;
+				if (c >= 'a' && c <= 'z')
+				{
+					c -= 32;
+				}
+				else if (c >= 'A' && c <= 'Z')
+				{
+					c += 32;
+				}
+				else
+				{
+					switch (c)
+					{
+					case '-':
+						c = '_';
+						break;
+					}
+				}
+			}
 			kputc(c);
 			append(buffer, c);
 		}

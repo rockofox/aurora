@@ -106,7 +106,18 @@ void init_virtmem(multiboot_info_t *mbi)
         // serial_printf("Allocating page 0x%x\n", i);
         vmem_map_page(kernel_context, 0x400000 + i, mbi->framebuffer_addr + i);
     }
-    serial_printf("Free regions begin at 0x%x\n", 2 * (4096 * 1024));
+    // Map whatever
+    // for (i = 0; i < 4096 * 1024; i += 0x1000)
+    // {
+    //     // serial_printf("Allocating page 0x%x\n", i);
+    //     vmem_map_page(kernel_context, 0x1000000 + i, 0x1000000 + i);
+    // }
+    // for (i = 0; i < 4096 * 1024; i += 0x1000)
+    // {
+    //     // serial_printf("Allocating page 0x%x\n", i);
+    //     vmem_map_page(kernel_context, 0xf0000000 + i, 0xf0000000 + i);
+    // }
+    // serial_printf("Free regions begin at 0x%x\n", 2 * (4096 * 1024));
     vmem_activate_context(kernel_context);
     asm volatile("mov %%cr0, %0"
                  : "=r"(cr0));
