@@ -8,6 +8,7 @@
 #include "idts.h"
 #include "fs/ff14b/source/ff.h"
 #include "cpu.h"
+#include "mem.h"
 
 char layout[60] = "1234567890-=<>qwertyuiop[]?\\asdfghjkl;'!@#zxcvbnm,./";
 char buffer[200] = "";
@@ -123,10 +124,22 @@ void execute(char *input)
 		{
 			serial_println("File opened");
 		}
-		char *buf = alloc_block();
-		FRESULT rs = f_read(fp, buf, 512, NULL);
+		char *buf = malloc(7 * 1024);
+		// char buf[7 * 1024] = {0};
+		FRESULT rs = f_read(fp, buf, 7 * 1024, NULL);
+		if (rs != FR_OK)
+		{
+			serial_println("Failed to read file");
+			return;
+		}
+		// for (size_t i = 0; i < 7 * 1024; i++)
+		// {
+		// 	serial_printf("0x%x ", buf[i]);
+		// }
+
 		launch_elf(buf);
 		f_close(fp);
+		// free(buf);
 		// char msg[50] = "Unknown command ";
 		// strcat(msg, cmd);
 		// kprintln(msg);

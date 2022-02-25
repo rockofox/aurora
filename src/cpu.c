@@ -30,19 +30,11 @@ struct task_node *init_task(void *entry)
         .esp = (uint32_t)user_stack + 4096,
         .eip = (uint32_t)entry,
 
-        /* Ring-0-Segmentregister */
         .cs = 0x18 | 0x03,
         .ss = 0x20 | 0x03,
 
-        /* IRQs einschalten (IF = 1) */
         .eflags = 0x202};
 
-    /*
-     * Den angelegten CPU-Zustand auf den Stack des Tasks kopieren, damit es am
-     * Ende so aussieht als waere der Task durch einen Interrupt unterbrochen
-     * worden. So kann man dem Interrupthandler den neuen Task unterschieben
-     * und er stellt einfach den neuen Prozessorzustand "wieder her".
-     */
     struct cpu_state *state = (void *)(stack + 4096 - sizeof(new_state));
     *state = new_state;
 
@@ -51,12 +43,10 @@ struct task_node *init_task(void *entry)
     task_node->next = NULL;
     task_node->pid = 0;
     task_node->context = create_vmem_context();
+    // vmem_map_page(task_node->context, 0, 0);
     vmem_copy_kernel_page_directory(task_node->context);
     // task_node->cr3 = (uint32_t)vmem_virt_to_phys(vmem_get_kernel_context(), task_node->context->pagedir);
-    // for (uint32_t i = 0; i < 4096 * 1024; i += 0x1000)
-    // {
-    //     vmem_map_page(task_node->context, i, 0x810000 + i);
-    // }
+    // task_node->context = vmem_create_page_dir();
 
     return task_node;
 }
@@ -113,8 +103,13 @@ uint32_t get_free_load_addr()
 }
 void launch_elf(void *image)
 {
+    // return;
+    uint32_t free_load_addr = get_free_load_addr();
     struct task_node *task_node = init_task(image);
     struct elf_header *header = (struct elf_header *)image;
+    serial_printf("launch_elf: free load addr 0x%x\n", free_load_addr);
+    // task_node->context = create_vmem_context();
+    vmem_copy_kernel_page_directory(task_node->context);
     struct elf_program_header *program_header;
     if (header->magic != ELF_MAGIC)
     {
@@ -122,7 +117,6 @@ void launch_elf(void *image)
         return;
     }
     program_header = ((char *)image + header->ph_offset);
-    uint32_t free_load_addr = get_free_load_addr();
     for (int i = 0; i < header->ph_entry_count; i++)
     {
         void *dest = (void *)(program_header[i].virt_addr);
@@ -132,13 +126,15 @@ void launch_elf(void *image)
             serial_printf("Skipping unsupported elf header with type %d\n", program_header->type);
             continue;
         }
-        serial_printf("\t\t beep\n");
+
         vmem_map_page(task_node->context, program_header->virt_addr, free_load_addr);
-        // vmem_map_page(task_node->context, program_header->virt_addr, program_header->phys_addr);
-        memset(dest, 0, program_header->mem_size);
-        memcpy(dest, src, program_header->file_size);
+        memset(program_header->virt_addr, 0, program_header->file_size);
+        memcpy(program_header->virt_addr, image + program_header->offset, program_header->file_size);
     }
-    task_node->cpu_state->eip = header->entry;
+    // task_node->cpu_state->eip = header->entry;
+    task_node->cpu_state->eip = header->entry + 1;
+    // last_load_addr += program_header->mem_size;
+
     append_task(task_node);
 }
 void idle()
@@ -160,7 +156,8 @@ void kill_current_task()
     }
     asm volatile("cli");
     scheduler_locked = true;
-    serial_printf("Killing %d\n", current_task->pid);
+    if (current_task->pid > 100)
+        serial_printf("Killing 0x%x\n", current_task->pid);
     struct task_node *task = task_list;
     while (task->next != current_task)
     {

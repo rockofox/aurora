@@ -252,15 +252,15 @@ struct cpu_state *irq0_handler(struct cpu_state *cpu)
         // serial_printf("Task context: 0x%x\n", newPageDir);
         // serial_printf("Kernel context: 0x%x\n", vmem_get_kernel_context()->pagedir);
         // vmem_activate_context(get_current_task()->context);
-        asm volatile("mov %0, %%cr3"
-                     :
-                     : "r"(newPageDir));
-        asm volatile("mov %%cr0, %0"
-                     : "=r"(cr0));
-        cr0 |= (1 << 31);
-        asm volatile("mov %0, %%cr0"
-                     :
-                     : "r"(cr0));
+        // asm volatile("mov %0, %%cr3"
+        //              :
+        //              : "r"(newPageDir));
+        // asm volatile("mov %%cr0, %0"
+        //              : "=r"(cr0));
+        // cr0 |= (1 << 31);
+        // asm volatile("mov %0, %%cr0"
+        //              :
+        //              : "r"(cr0));
     }
     else
     {
@@ -362,9 +362,28 @@ void irq15_handler(void)
     outb(0xA0, 0x20);
     outb(0x20, 0x20); // EOI
 }
+void print_cpu_state(struct cpu_state *cpu)
+{
+    serial_printf("eax: 0x%x\n", cpu->eax);
+    serial_printf("ebx: 0x%x\n", cpu->ebx);
+    serial_printf("ecx: 0x%x\n", cpu->ecx);
+    serial_printf("edx: 0x%x\n", cpu->edx);
+    serial_printf("esi: 0x%x\n", cpu->esi);
+    serial_printf("edi: 0x%x\n", cpu->edi);
+    serial_printf("ebp: 0x%x\n", cpu->ebp);
+    serial_printf("intr: 0x%x\n", cpu->intr);
+    serial_printf("error: 0b%b\n", cpu->error);
+    serial_printf("eip: 0x%x\n", cpu->eip);
+    serial_printf("cs: 0x%x\n", cpu->cs);
+    serial_printf("eflags: 0x%x\n", cpu->eflags);
+    serial_printf("esp: 0x%x\n", cpu->esp);
+    serial_printf("ss: 0x%x\n", cpu->ss);
+}
+
 struct cpu_state *generic_irq_handler(struct cpu_state *cpu)
 {
     serial_printf("General protection fault\n");
+    // print_cpu_state(cpu);
     kill_current_task();
     while (1)
     {
@@ -374,8 +393,9 @@ struct cpu_state *generic_irq_handler(struct cpu_state *cpu)
 
 struct cpu_state *pf_irq_handler(struct cpu_state *cpu)
 {
-    if (cpu->intr == 0xffffff80)
+    if (cpu->intr == 0xffffff80 || cpu->intr == 0xffffffff || cpu->intr == 0xf000ff63)
     {
+        serial_printf("Page fault, killing process\n");
         kill_current_task();
         return cpu;
     }

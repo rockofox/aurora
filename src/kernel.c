@@ -205,6 +205,7 @@ void kernel_main(uint32_t magic, multiboot_info_t *mbi)
 	{
 		serial_println("Filesystem mounted");
 	}
+	// test_ff();
 	while (1)
 	{
 		// kprintln("AuroraOS wip");

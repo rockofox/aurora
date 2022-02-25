@@ -9,3 +9,5 @@ void *alloc_block();
 void free_block(void *addr);
 void mark_used(void *addr);
 void mark_free(void *addr);
+void *malloc(size_t size);
+void free(void *addr);

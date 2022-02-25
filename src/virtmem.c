@@ -56,6 +56,16 @@ int vmem_map_page(struct vmem_context *context, uintptr_t page, uintptr_t phys)
                  : "m"(*(char *)page));
     return 0;
 }
+void vmem_map_virtual_to_phys(struct vmem_context *context, uintptr_t virt, uintptr_t phys)
+{
+    uint16_t id = virt >> 22;
+    for (uint32_t i = 0; i < 1024; i++)
+    {
+        context->pagedir[i] = phys | 3;
+        phys += 4096;
+    }
+    context->pagedir[id] = phys | 3;
+}
 void vmem_copy_page_directory(struct vmem_context *dest, struct vmem_context *src)
 {
     for (int i = 0; i < 1024; i++)
@@ -88,8 +98,30 @@ int vmem_alloc_kernel_page(uintptr_t page)
 {
     return vmem_map_page(kernel_context, page, page);
 }
+uint32_t free_region = 0;
+multiboot_info_t *mbii;
+struct vmem_context *vmem_create_page_dir()
+{
+    struct vmem_context *context = create_vmem_context();
+    int i;
+    for (i = 0; i < 4096 * 1024; i += 0x1000)
+    {
+        vmem_map_page(context, i, i);
+    }
+
+    // Map the framebuffer
+    for (i = 0; i < 4096 * 1024; i += 0x1000)
+    {
+
+        // serial_printf("Allocating page 0x%x to 0x%x\n", 0x400000 + i, mbii->framebuffer_addr + i);
+        // serial_printf("Allocating page 0x%x\n", 0x400000 + i);
+        vmem_map_page(context, 0x400000 + i, 0xfd000000 + i);
+    }
+    return context;
+}
 void init_virtmem(multiboot_info_t *mbi)
 {
+    mbii = mbi;
     uint32_t cr0;
     kernel_context = create_vmem_context();
     int i;
@@ -98,13 +130,17 @@ void init_virtmem(multiboot_info_t *mbi)
     {
         // serial_printf("Allocating page 0x%x\n", i);
         vmem_map_page(kernel_context, i, i);
+        free_region += 0x1000;
     }
 
     // Map the framebuffer
     for (i = 0; i < 4096 * 1024; i += 0x1000)
     {
         // serial_printf("Allocating page 0x%x\n", i);
+        // serial_printf("Allocating page 0x%x to 0x%x\n", 0x400000 + i, mbi->framebuffer_addr + i);
+
         vmem_map_page(kernel_context, 0x400000 + i, mbi->framebuffer_addr + i);
+        free_region += 0x1000;
     }
     // Map whatever
     // for (i = 0; i < 4096 * 1024; i += 0x1000)
@@ -117,7 +153,7 @@ void init_virtmem(multiboot_info_t *mbi)
     //     // serial_printf("Allocating page 0x%x\n", i);
     //     vmem_map_page(kernel_context, 0xf0000000 + i, 0xf0000000 + i);
     // }
-    // serial_printf("Free regions begin at 0x%x\n", 2 * (4096 * 1024));
+    serial_printf("Free regions begin at 0x%x\n", free_region);
     vmem_activate_context(kernel_context);
     asm volatile("mov %%cr0, %0"
                  : "=r"(cr0));

@@ -18,3 +18,5 @@ void vmem_copy_kernel_page_directory(struct vmem_context *dest);
 void *vmem_virt_to_phys(struct vmem_context *context, void *virt);
 struct vmem_context *vmem_get_kernel_context();
 struct vmem_context *create_vmem_context();
+struct vmem_context *vmem_create_page_dir();
+void vmem_map_virtual_to_phys(struct vmem_context *context, uintptr_t virt, uintptr_t phys);

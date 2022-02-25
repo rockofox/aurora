@@ -25,16 +25,16 @@ void ata_read_sectors(uint64_t *target, uint32_t lba, uint8_t sectors)
     outb(ATA_PORT_LBA1, lba >> 8);
     outb(ATA_PORT_LBA2, lba >> 16);
     outb(ATA_PORT_CMD, ATA_COMMAND_READ_PIO);
-    uint16_t *actual_target = (uint16_t *)target;
+    uint16_t *tmp_target = (uint16_t *)target;
     for (uint32_t i = 0; i < sectors; i++)
     {
         ata_wait_bsy();
         ata_wait_drq();
         for (int j = 0; j < 256; j++)
         {
-            actual_target[j] = inw(0x1F0);
+            tmp_target[j] = inw(0x1F0);
         }
-        target += 256;
+        tmp_target += 256;
     }
     serial_printf("Read %d sectors from LBA %d\n", sectors, lba);
 }
@@ -57,7 +57,7 @@ void ata_write_sectors(uint32_t lba, uint8_t sectors, uint32_t *bytes)
         {
             outl(ATA_PORT_DATA, bytes[j]);
         }
-        bytes += 256;
+        // bytes += 256;
     }
 }
 void ata_wait_bsy()

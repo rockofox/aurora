@@ -68,6 +68,11 @@ void serial_printf(char *str, ...)
                 arg = va_arg(args, char);
                 serial_putc(arg);
                 break;
+            case 'b':
+                arg = va_arg(args, uint32_t);
+                itoa(arg, n, 2);
+                serial_print(n);
+                break;
             default:
                 break;
             }
